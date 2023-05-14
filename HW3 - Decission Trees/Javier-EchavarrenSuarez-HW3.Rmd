@@ -1,0 +1,30 @@
+---
+title: "CS 422 HW3"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+### Part 2.1.a
+
+```{r}
+#We introduce the libraries we are going to use
+library(rpart)
+library(rpart.plot)
+iris
+```
+firstly, we plot the data to see if there is any clear separation between the attributes of the different species and we see that in petals there is almost a clear separation between them.
+```{r}
+plot(iris$Sepal.Length ,iris$Sepal.Width , col=iris$Species)
+plot(iris$Petal.Length ,iris$Petal.Width , col=iris$Species)
+```
+
+```{r}
+#We create the model and plot it
+model <- rpart(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data = iris,method = "class" )
+ rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Iris Dataset Decision Tree")
+path.rpart(model, nodes = c(1,2,3,4,5,6,7))
+print(model)
+```

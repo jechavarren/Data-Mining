@@ -1,0 +1,166 @@
+---
+title: "CS 422 HW2"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+## Part 2.1
+### Part 2.1.a
+
+```{r}
+#firstly, we add the libraries needed
+library("ISLR")
+library(psych)
+library(dplyr)
+#code given in the assignment
+set.seed(1122)
+index <- sample(1:nrow(Auto), 0.95*dim(Auto)[1])
+train.df <- Auto[index,]
+test.df <- Auto[-index, ]
+
+#we learn a bit about the data, knowing its summary and the correlations between variables
+summary(Auto)
+pairs.panels(subset(Auto, select = -c(name) ))
+
+#we create the regression model without taking into account the name variable
+model <- lm(mpg ~ ., data = subset(train.df, select = -c(name) ))
+model
+summary(model)
+
+```
+### Part 2.1.a.i Why is using name as a predictor not a reasonable thing to do?
+Using name as a predictor would not add anything to the model, as almost every car in the database has a different name, we could not learn anything from it, having too little cars for each name. Also, a car's name is not related to its mpg.
+
+### Part 2.1.a.ii
+
+```{r}
+#we print the summary of the regression model
+summary(model)
+#we compute the values of RSS, RSE and RMSE
+RSS=sum((train.df$mpg - model$fitted.values)**2)
+RSE=sqrt(RSS*(1/(nrow(train.df)-(ncol(subset(train.df, select = -c(name,mpg))))-1)))
+RMSE=sqrt(RSS/nrow(train.df))
+DF=(nrow(train.df)-(ncol(subset(train.df, select = -c(name,mpg))))-1)
+
+#We print the vvalues asked
+print(paste("R-sq value is",summary(model)$r.squared))
+print(paste("Adjusted R-sq value is",summary(model)$adj.r.squared))
+print(paste("RSE value is",RSE))
+print(paste("RMSE value is",RMSE))
+
+```
+The model fits very well, having a R squared value of 0.817.There is not much numerical difference between RSE and RMSE because n is relatively big.In the data we see that mpg are between 10 and 30 (has a standard deviation of 7.8), and reducing the error to the RMSE(3.33) by using the model shows the model is a good fit.
+### Part 2.1.a.iii Plot the residuals of the model.
+
+
+```{r}
+#we plot the residuals of the model
+plot(model$residuals, ylab="model residuals")
+
+```
+### Part 2.1.a.iv Plot a histogram of the residuals of the model. Does the histogram follow a Gaussian distribution? What can you say about the distribution of the residuals?
+
+```{r}
+#we plot a histogram of the residuals of the model
+hist(model$residuals, main = "Model residuals", xlab = "model residuals")
+
+```
+The histogram seems to follow a normal distribution, we should have to test it, but visually it does.The only strange thing in this distribution is the long tail it has, with relatively too many values with residuals higher than 10, and it is explained when plotting residuals vs mpg, we see that we have a lot of residuals in the values with high mpg. The distribution of the residuals plotted in 2.1.a.iii seem totally random and independent, what makes us think there is no more information we can extract by this model. If we saw colinearity in the residuals, we should improve the model.
+### Part 2.1.b.i (b) Using the regression model you have created in (a), your aim is to narrow down the features to the 3 attributes will act as the best predictors for regressing on mpg. To do so, start with all predictors in the model; then: (i) Determine which predictors are statistically significant and which are not. Eliminate those that are not statistically significant and create a new model using only those 3 predictors that you believe are statistically significant
+
+The most statistically significant predictors are the ones with a lower p-value, and they are year, weight, origin and displacement. Intercept has also a low p-value (less than 0.001) but we don't count it as a predictor.
+I will make a new model that only uses year, weight and origin as variables because they are the ones that have the lowest p-value.
+```{r}
+#we make the new model
+model2 <- lm(mpg ~ ., data = subset(train.df, select = c(mpg,year,weight,origin) ))
+
+
+```
+
+### Part 2.1.b.ii Print the summary of the regression model created in (b)(i) and comment on how well the model fits the data by studying the R2 , RSE and RMSE. (Print out the values of R2 , RSE, and RMSE.)
+
+```{r}
+summary(model2)
+
+#we compute the values of RSS, RSE and RMSE
+RSS2=sum((train.df$mpg - model2$fitted.values)**2)
+RSE2=sqrt(RSS*(1/(nrow(train.df)-(ncol(subset(train.df, select = c(year,weight,origin))))-1)))
+RMSE2=sqrt(RSS2/nrow(train.df))
+DF2=(nrow(train.df)-(ncol(subset(train.df, select = c(year,weight,origin))))-1)
+
+#We print the values asked
+print(paste("R-sq value is",summary(model2)$r.squared))
+print(paste("Adjusted R-sq value is",summary(model2)$adj.r.squared))
+print(paste("RSE value is",RSE2))
+print(paste("RMSE value is",RMSE2))
+
+
+
+```
+The model fits the data more or less as the first one did, having similar values of R squared , RSE and RMSE. The R squared is a little bit lower and the RMSE is higher, and it is normal because as you loose variables you loose the capability of fitting better, but in this case the difference is not significant.RSE is lower but it is because the Degrees of freedom impact the formula.
+
+### Part 2.1.b.iii Plot the residuals of the model.
+
+
+```{r}
+#we plot the residuals of the model
+plot(model2$residuals, ylab="model residuals" )
+
+```
+### Part 2.1.b.iv Plot a histogram of the residuals of the model. Does the histogram follow a Gaussian distribution? What can you say about the distribution of the residuals?
+
+
+```{r}
+#we plot a histogram of the residuals of the model
+hist(model$residuals, main = "Model residuals", xlab = "model residuals")
+
+```
+The histogram seems to follow a gaussian distribution but we should have to test it to affirm that it does. seeing the X,Y plot, the residuals seem identically distributed and independent, except for some that are too high, and are ones where the value of mpg is higher, as explained in 2.1.a.iv.
+### Part 2.1.b.v Comparing the summaries of the model produced in (a) and in (b), including residual analysis of each model. Which model do you think is better, and why?
+
+Seeing that both models have a similar R squared, I would choose the second one because the added value of the first model may not be extrapolable to a new set of data. If both models are similar, I prefer to choose the simplest one because is more understandable, easy to work with and the variables used are the ones we are sure that have an impact on the studied variable, mpg. 
+### Part 2.1.c Using the predict() method, fit the test dataset to the model you created in (b) and perform the analysis below.
+```{r}
+confidence <- round(predict(model2,test.df),digits = 2)
+Response <- round(test.df$mpg,digits = 2)
+confidence.df <- data.frame(confidence,Response)
+```
+### Part 2.1.d Count how many of the fitted values matched the mpg in the test dataset at a 95% confidence level by creating confidence intervals
+```{r}
+CI <- round(predict(model2 ,test.df,interval = 'confidence'),digits = 2)
+confidence.df$Lower <- CI[,2]
+confidence.df$Upper <- CI[,3]
+confidence.df$Matches <- (confidence.df$Lower < confidence.df$Response)*(confidence.df$Upper > confidence.df$Response)
+print(confidence.df)
+print(paste("Total observations correctly predicted: ",apply(confidence.df,2,FUN="sum")[5]))
+
+
+```
+
+### Part 2.1.e (e) Follow the same instructions in (d) except this time, you will be using a prediction interval. 
+```{r}
+Prediction <- predict(model2,test.df)
+Response <- test.df$mpg
+predict.df <- data.frame(Prediction,Response)
+predictionCI <- predict(model2 ,test.df,interval = 'prediction')
+predict.df$Lower <- predictionCI[,2]
+predict.df$Upper <- predictionCI[,3]
+predict.df$Matches <- (predict.df$Lower < predict.df$Response)*(predict.df$Upper > predict.df$Response)
+print(predict.df)
+print(paste("Total observations correctly predicted: ",apply(predict.df,2,FUN="sum")[5]))
+
+
+```
+### Part 2.1.f Comment on the results of (d) and (e):
+
+2.1.f.i Which of (d) or (e) results in more matches?
+
+The results in the 2.1.e show that there are more values inside the prediction interval than they are in the confidence interval, as the prediction interval is wider than the confidence one.
+
+2.1.f.ii Why? (1 – 2 sentences.)
+
+The difference is that the prediction interval reflects the uncertainty around each value, while the confidence interval expresses the uncertainty around the mean prediction values, and that's why prediction interval is wider and almost all the measurements fitted into the prediction interval but not in the confidence one.
+

@@ -1,0 +1,226 @@
+---
+title: "CS 422 HW4"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+```{r}
+#We introduce the libraries we are going to use and import training and testing data
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(ROCR)
+train.df <- read.csv("adult-train.csv",header = TRUE, sep = "," )
+test.df <- read.csv("adult-test.csv",header = TRUE, sep = "," )
+```
+### Part 2.1-a
+Remove all the observations that have ‘?’ in them. Hints: To find out which attributes have a ‘?’ in them, use sum(dfSoccupation == “?”). If this method returns a non-zero value, the value returned represents the number of times a ‘?’ is seen in that column. Then, use which(dfSoccupation == “?”) to determine the index of the rows containing the attribute that has the ‘?’. Recall that which() accepts as a parameter a logical vector (or array), and returns the indices where a TRUE occurs in the vector (or array). Consequently, the return value of which() will be a vector of indices. (See R-intro-1.r in Lecture 1 for an example that involves the use of which().) Collect all the indices of the columns where a ‘?’ occurs into a vector, and use that vector to weed out the rows containing the columns with ‘?’ As a sanity check, when you are done with weeding out the ‘?’, you should be left with 30,161 observations in
+the training set.
+Do the same thing for the test dataset. Again, as a sanity check, you should be left with 15,060 observations in the test dataset after you have removed the rows containing ‘?’ in a column.
+The rest of the questions below assume that the training and testing datasets are clean.
+```{r}
+#We remove the observations with "?" as occupation in the train data frame
+#We check what columns have ? in any of its observations 
+QuestionIntrain <- c(1:ncol(train.df))*0
+for (x in 1:ncol(train.df)){
+  QuestionIntrain [x] <- (sum(train.df[,x] == "?"))
+}
+#We store the column indexes where there are "?" 
+Quit.train <- which(QuestionIntrain >0)
+
+#we clean the data eliminating therows where there are "?"
+for (x in Quit.train){
+  train.df <- train.df[-(which(train.df[,x] == "?")),]
+}
+#we print the number of rows of the data frame to check
+print(nrow(train.df))
+
+#We remove the observations with "?" as occupation in the test data frame
+#We check what columns have ? in any of its observations 
+QuestionIntest <- c(1:ncol(test.df))*0
+for (x in 1:ncol(test.df)){
+  QuestionIntest [x] <- (sum(test.df[,x] == "?"))
+}
+#We store the column indexes where there are "?" 
+Quit.test <- which(QuestionIntest >0)
+
+#we clean the data eliminating the rows where there are "?"
+for (x in Quit.test){
+  test.df <- test.df[-(which(test.df[,x] == "?")),]
+}
+#we print the number of rows of the data frame to check
+print(nrow(test.df))
+
+```
+### Part 2.1-b
+ Before doing this part of the assignment, please set your seed to the value shown below:
+set.seed(1122)
+Now, build a decision tree model using rpart() to predict whether a person makes <=50K or >50K using all of the predictors. Answer the following questions through model introspection:
+```{r}
+#We set the seed to 1122, as required
+set.seed(1122)
+model1 <- rpart(income ~. , train.df, method = "class")
+
+```
+
+### Part 2.1-b-i
+Name the top three important predictors in the model?
+```{r}
+print(paste(c("the top three important predictors in the model are:",attr(model1$variable.importance, "names")[1],",", attr(model1$variable.importance, "names")[2],"and",attr(model1$variable.importance, "names")[3]),collapse = " "))
+```
+### Part 2.1-b-ii
+The first split is done on which predictor? What is the predicted class of the first node (the first node here refers to the root node)? What is the distribution of observations between the “<=50K” and “>50K” classes at
+first node?
+```{r}
+print(paste(c("The first split is done on the  predictor called",model1$frame$var[1]),collapse = 
+" "))
+print(paste(c("The predicted class of the first node is:",attr(model1,"ylevels")[model1$frame$yval[1]]),collapse = 
+" "))
+print(paste(c("The distribution of observations between the “<=50K” and “>50K” classes at the first node is:",attr(model1,"ylevels")[model1$frame$yval[1]],"-> ",model1$frame$n[1]-model1$frame$dev[1],"//",attr(model1,"ylevels")[2],"-> ",model1$frame$dev[1]),collapse = 
+" "))
+```
+### Part 2.1-c
+Use the trained model from (b) to predict the test dataset. Answer the following questions based on the outcome of the prediction and examination of the confusion matrix: (for floating point answers, assume 3 decimal place accuracy):
+
+### Part 2.1-c-i
+What is the balanced accuracy of the model? (Note that in our test dataset, we have more observations of class “<=50” than we do of class “>50”. Thus, we are more interested in the balanced accuracy, instead of just accuracy. Balanced accuracy is calculated as the average of sensitivity and specificity.)
+```{r}
+predictions1 <- predict(model1,test.df,type="class")
+TestIncome <- as.factor(test.df$income)
+CM <- confusionMatrix(predictions1,TestIncome)
+print(paste(c("The balanced accuracy of the model is:",round(CM$byClass[11], 3)),collapse = " "))
+```
+
+### Part 2.1-c-ii
+What is the balanced error rate of the model? (Again, because our test data is imbalanced, a balanced error rate makes more sense. Balanced error rate = 1.0 – balanced accuracy.)
+```{r}
+print(paste(c("The balanced error rate of the model is:",round(1-CM$byClass[11], 3)),collapse = " "))
+```
+
+### Part 2.1-c-iii
+What is the sensitivity? Specificity?
+```{r}
+print(paste(c("The Sensitivity of the model is:",round(CM$byClass[1],  3)),collapse = " "))
+print(paste(c("The Specificity of the model is:",round(CM$byClass[2],3)),collapse = " "))
+```
+
+### Part 2.1-c-iv
+What is the AUC of the ROC curve. Plot the ROC curve.
+```{r}
+rocr <- predict(model1, newdata=test.df, type="prob")[,2]
+f.pred <- prediction(rocr, test.df$income)
+#we get the AUC and print it
+auc <- performance(f.pred, measure = "auc")
+print(paste(c("The AUC of the ROC curve is:",round(auc@y.values[[1]], 3)),collapse = " "))
+
+#We plot the ROC curve
+plot(performance(f.pred, "tpr", "fpr"), colorize=T, lwd=3)
+abline(0,1)
+```
+
+
+### Part 2.1-d
+Print the complexity table of the model you trained. Examine the complexity table and state whether the tree would benefit from a pruning. If the tree would benefit from a pruning, at what complexity level would you prune it? If the tree would not benefit from a pruning, provide reason why you think this is the case.
+
+```{r}
+printcp(model1)
+```
+
+The tree wouldn't benefit from a pruning, as all the  cps of the splits are higher or equal to 0.01, the cp that was defined in the rpart function. If we changed the cp to 0.02, we should then prune the tree, but we defined cp=0.01 for the rpart function (showing it when to split or not)and we still have the same level of cp needed. The reason not to prune it is that every split present in the model gives us at least the information we required the model to give us for each split.
+
+### Part 2.1-e
+Besides the class imbalance problem we see in the test dataset, we also have a class imbalance problem in the training dataset. To solve this class imbalance problem in the training dataset, we will use undersampling, i.e., we will undersample the majority class such that both classes have the same number of observations in the training dataset. Before doing this part of the assignment, please set your seed to the value shown below:
+
+```{r}
+set.seed(1122)
+```
+
+### Part 2.1-e-i
+In the training dataset, how many observations are in the class “<=50K”? How many are in the class
+“>50K”?
+
+```{r}
+print(paste(c("In the training dataset there are",sum(train.df$income == "<=50K"),"observations in the class <=50K and",sum(train.df$income == ">50K"), "observations in the class >50k"),collapse = " "))
+```
+
+### Part 2.1-e-ii
+Create a new training dataset that has equal representation of both classes; i.e., number of observations of class “<=50K” must be the same as number of observations of class “>50K”. Call this new training dataset. (Use the sample() method on the majority class to sample as many observations as there are in the minority class. Do not use any other method for undersampling as your results will not match expectation if you do so.)
+
+```{r}
+set.seed(1122)
+#We firstly create one data frame with the observations that contain <= 50K and other for those that contain >50K
+train.df.lowincome <- train.df[(which(train.df$income == "<=50K")),]
+train.df.highincome <- train.df[(which(train.df$income == ">50K")),]
+#We sample the dataframe that contains <=50k, extracting the same number of observations that the other data frame has
+index <- sample(1:nrow(train.df.lowincome), size= nrow(train.df.highincome))
+train.df.lowincome2<- train.df.lowincome[index,]
+#we combine both datasets into one
+new_training_dataset <- rbind(train.df.highincome,train.df.lowincome2)
+new_training_dataset
+```
+
+
+### Part 2.1-e-iii
+Train a new model on the new training dataset, and then fit this model to the testing dataset. Answer the following questions based on the outcome of the prediction and examination of the confusion matrix: (for floating point answers, assume 3 decimal place accuracy):
+
+
+```{r}
+set.seed(1122)
+#we create the new model
+model2 <- rpart(income ~. , new_training_dataset, method = "class")
+
+#we make the predictions and create the confussion matrix
+predictions2 <- predict(model2,test.df,type="class")
+TestIncome <- as.factor(test.df$income)
+CM2 <- confusionMatrix(predictions2,TestIncome)
+```
+
+### Part 2.1-e-iii-i
+What is the balanced accuracy of this model? 
+
+```{r}
+print(paste(c("The balanced accuracy of the model is:",round(CM2$byClass[11],3)),collapse = " "))
+```
+### Part 2.1-e-iii-ii
+What is the balanced error rate of this model? 
+```{r}
+print(paste(c("The balanced error rate of this model is:",round(1-CM2$byClass[11],3)),collapse = " "))
+```
+### Part 2.1-e-iii-iii
+What is the sensitivity? Specificity?
+```{r}
+print(paste(c("The Sensitivity of this model is:",round(CM2$byClass[1],3)),collapse = " "))
+print(paste(c("The Specificity of this model is:",round(CM2$byClass[2], 3)),collapse = " "))
+```
+
+### Part 2.1-e-iii-iv
+What is the AUC of the ROC curve. Plot the ROC curve.
+```{r}
+rocr2 <- predict(model2, newdata=test.df, type="prob")[,2]
+f.pred2 <- prediction(rocr2, test.df$income)
+#we get the AUC and print it
+auc2 <- performance(f.pred2, measure = "auc")
+print(paste(c("The AUC of the ROC curve is:",round(auc2@y.values[[1]], 3)),collapse = " "))
+
+#We plot the ROC curve
+plot(performance(f.pred2, "tpr", "fpr"), colorize=T, lwd=3)
+abline(0,1)
+```
+### Part 2.1-f
+Comment on the differences in the balanced accuracy, sensitivity, specificity, positive predictive
+value and AUC of the models used in (c) and (e).
+```{r}
+round(CM$byClass,3)
+round(CM2$byClass,3)
+round(auc@y.values[[1]],3)
+round(auc2@y.values[[1]],3)
+```
+The second model has higher balance accuracy because the data was more balanced, it was able to improve a lot the specificity, losing a bit of sensitivity.
+The second model has lower sensitivity because its observations were more balanced, and it is a less biased model towards positives than the first.
+The second model has higher specificity because its data was balanced.
+The second model has higher positive predictive value, as its data was more balanced, and doesn't bias as heavy towards predicting positives as the first did
+AUC is a little bit higher in the second model, as it is more balanced between predicting positives and negatives.
+

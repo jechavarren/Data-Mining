@@ -1,0 +1,112 @@
+---
+title: "CS 422 HW5"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+### Part 2.1-b
+(b) [3 point] Given the database of transactions, where each transaction is a list of items, find rules that associate
+the presence of one set of items with that of another set of items. Ideally, we only want to find rules that are substantiated by the data; we want to avoid spurious associations.
+Find association rules that exceed specific values of minimum support and minimum confidence. You are free to experiment with different values until you find something that produces meaningful results. However, be aware that if you specify minimum support or confidence very low, your R process may appear to “hang” as the many itemsets are mined. In such a case, restart R. Use a structured approach by first reading the documentation to understand what the default value of minsup and minconf is, and then experiment from there.
+Recall that finding rules requires two steps: finding the frequent itemsets and discovering strong association rules within them. You will use the R arules package as shown in class.
+Your output should contain the following:
+• For each frequent itemset:
+1. All items in it, described by the product names.
+2. The support of the itemset.
+• For each rule:
+1. The antecedent.
+2. The consequent.
+3. The support of the rule.
+4. The confidence of the rule.
+
+```{r}
+#We introduce the libraries we are going to use
+library(arules)
+library(arulesViz)
+
+#We read the transactions from the csv we prepared
+trans1 <-read.transactions(file = "tr-1k-canonical.csv",format = "basket", sep = ",",cols=NULL)
+trans5 <-read.transactions(file = "tr-5k-canonical.csv",format = "basket", sep = ",",cols=NULL)
+trans20 <-read.transactions(file = "tr-20k-canonical.csv",format = "basket", sep = ",",cols=NULL)
+trans75 <-read.transactions(file = "tr-75k-canonical.csv",format = "basket", sep = ",",cols=NULL)
+
+#We firstly find the frequent itemsets for each group, with minimum support of 0.05
+f_is1 <- apriori(trans1, parameter=list(support=0.05, target="frequent itemsets"))
+f_is5 <- apriori(trans5, parameter=list(support=0.05, target="frequent itemsets"))
+f_is20 <- apriori(trans20, parameter=list(support=0.05, target="frequent itemsets"))
+f_is75 <- apriori(trans75, parameter=list(support=0.05, target="frequent itemsets"))
+```
+The most frequent itemsets in the 1k itemset with support higher than 0.05 are the following:
+```{r}
+inspect(sort(f_is1, decreasing = T, by="count"))
+
+```
+The most frequent itemsets in the 5k itemset with support higher than 0.05 are the following:
+```{r}
+inspect(sort(f_is5, decreasing = T, by="count"))
+```
+The most frequent itemsets in the 20k itemset with support higher than 0.05 are the following:
+```{r}
+inspect(sort(f_is20, decreasing = T, by="count"))
+```
+The most frequent itemsets in the 75k itemset with support higher than 0.05 are the following:
+```{r}
+inspect(sort(f_is75, decreasing = T, by="count"))
+```
+We start now looking for the association rules for each itemset
+```{r}
+#We find the association rules for each group, with minimum support of 0.05
+rules1 <- apriori(trans1, parameter=list(support=0.05,confidence = 0.15, target="rules"))
+rules5 <- apriori(trans5, parameter=list(support=0.05, confidence = 0.15,target="rules"))
+rules20 <- apriori(trans20, parameter=list(support=0.05,confidence = 0.15,  target="rules"))
+rules75 <- apriori(trans75, parameter=list(support=0.05,confidence = 0.15, target="rules"))
+
+```
+The most relevant rules in the 1k itemset ordered by lift are the following:
+```{r}
+inspect(sort(rules1, decreasing = T, by="lift"))
+
+```
+The most relevant rules in the 5k itemset ordered by lift are the following:
+```{r}
+inspect(sort(rules5, decreasing = T, by="lift"))
+
+```
+The most relevant rules in the 20k itemset ordered by lift are the following:
+```{r}
+inspect(sort(rules20, decreasing = T, by="lift"))
+
+```
+The most relevant rules in the 75k itemset ordered by lift are the following:
+```{r}
+inspect(sort(rules75, decreasing = T, by="lift"))
+
+```
+```{r}
+rm(f_is1)
+rm(f_is5)
+rm(f_is20)
+rm(f_is75)
+```
+### Part 2.1-c
+(c) [1 point] Given the above output, respond to the following question: Compare the rules you obtained for each different subset (1,000 – 75,000 transactions). How does the number of transactions affect the results you observed? (Write the answer in your R markup file, easily identified.)
+
+ANSWER: YES, the number of transactions affects a little bit, because our level of minimum support is near the support of the rules with better lift, and in datasets 5 and 20, the itemset (tuile cookie, marzipan cookie) didn't had enough support to pass the filter. The itemset (Apricot danish, Cherry Tart) was incluses in all the frequent itemsets and rules.
+However, if we lowered the minimum support required, that itemset would pass the filter.
+so the answer is, Changing the number of transactions can make some of the itemsets pass or not the support filter, but for itemsets that have support clearly higher than the minimum support, changing the size of the dataset will not change the rules obtained.
+
+### Part 2.1-d
+(d) [1 point] Answer the following questions for the 75,000 transactions dataset using the same support level as determined in (b):
+
+(1) What is the most frequently purchased item or itemset?
+
+The most frequently purchased item is {Coffee Eclair}, as it is the subset with highest support.
+
+(2) What is the least frequently purchased item or itemset?
+
+The least frequently purchased itemset is {Marzipan Cookie, Tuile Cookie}, as it is the itemset that has the lowest support (but higher than the minimum support).
+
+

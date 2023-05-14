@@ -1,0 +1,172 @@
+---
+title: "CS 422 HW8"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+```{r}
+library(dplyr)
+library(NbClust)
+library(factoextra)
+library(dbscan)
+
+```
+## Part 2.1
+(a) Data cleanup (0.5 points)
+
+### Part 2.1-A-i
+(i) Think of what attributes, if any, you may want to omit from the dataset when you do the clustering. Indicate
+all of the attributes you removed before doing the clustering.
+
+I only want to omit the Name attribute, as it doesn't help us clustering. of the other ones, I don't want to omit any, as they all seem to give useful information.It is true that the number of top and bottom teeth of the same cathegory seem to be very correlated, but we don't want to loose information, and that's why we don't omit any other attribute.
+
+### Part 2.1-A-ii
+(ii) Does the data need to be standardized? (Briefly, using 1-2 sentences, support your answer.)
+Yes, as the attributes have different sizes and not standardizing them would make the clustering give more importance to certain parameters.
+
+### Part 2.1-A-iii
+(iii) You will have to clean the data to remove multiple spaces and make the comma character the delimiter.
+Please make sure you include your cleaned dataset in the archive file you upload.
+
+```{r}
+df <- read.csv("file19_clean.txt",header = TRUE, sep = "," , skip= 20, row.names = 1)
+df.scaled <- scale(df)
+
+```
+## Part 2.1-B
+(b) Clustering
+### Part 2.1-B-i
+(i) [0.3 points] Determine how many clusters are needed by running the WSS or Silhouette graph. Plot the graph using fviz_nbclust().
+```{r}
+nb1 <- fviz_nbclust(df.scaled, FUNcluster = kmeans, method = "wss", diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", print.summary = TRUE )
+nb1
+```
+The number of clusters needed is 7, as the total within sum of square doesn't decreasetoo much if we add more clusters,
+
+### Part 2.1-B-i
+(ii) [0.3 points] Once you have determined the number of clusters, run k-means clustering on the dataset to create that many clusters. Plot the clusters using fviz_cluster().
+```{r}
+k1 <- kmeans(df.scaled, centers=7)
+fviz_cluster(k1,data = df.scaled)
+```
+
+### Part 2.1-B-iii
+(iii) [0.3 points] How many observations are in each cluster?
+```{r}
+for (i in 1:7)
+print(paste("In the cluster number", i , "there are", k1$size[i], "points", sep = " ", collapse = NULL))
+```
+
+### Part 2.1-B-iv
+(iv) [0.3 points] What is the total SSE of the clusters?
+```{r}
+print(paste("The total SSE of the clusters is", k1$tot.withinss, sep = " ", collapse = NULL))
+```
+
+### Part 2.1-B-v
+(v) [0.3 points] What is the SSE of each cluster?
+```{r}
+for (i in 1:7)
+print(paste("The cluster number", i , "Has an SSE of", k1$withinss[i], sep = " ", collapse = NULL))
+```
+### Part 2.1-B-vi
+(vi) [1.5 points] Perform an analysis of each cluster to determine how the mammals are grouped in each cluster, and whether that makes sense? Act as the domain expert here; clustering has produced what you asked it to. Examine the results based on your knowledge of the animal kingdom and see whether the results meet expectations. Provide me a summary of your observations.
+```{r}
+for (i in 1:7)
+print(df[which(k1$cluster==i),])
+```
+We can see that the animals are grouped taking into consideration what their diet is and their physical appearance.
+Group 1 contains little herbivores, like rabbits and chipmunks.
+Group 2 contains carnivorous from the family carnivora and caniform order, and are animals similar to dogs, like wolves, foxes and bears.
+Group 3 contain big herbivores like Deers, Mooses and Goats.
+Group 4 only contains the armadillo.
+Group 5 contains the sea mammals.
+Group 6 contains mainly bats.
+group 7 contains carnivorous from the family carnivora, and feliform order, and are animals similar to cats, like Jaguars weasels or ocelots.
+
+## Part 2.2
+DBSCAN clustering
+Read in the dataset s1.csv uploaded in Blackboard. (s1.csv is extracted from “s1.txt”, Clustering Basic Benchmark, P. Fränti and S. Sieranoja, http://cs.joensuu.fi/sipu/datasets/). S1 is a set of Gaussian clusters.
+There are 5,000 observations of two dimensions in the dataset.
+
+### Part 2.2-A-i
+(a) [0.25 pts] Do you think it is necessary to standardize the dataset? Justify your answer.
+```{r}
+df.dbscan <- read.csv("s1.csv",header = TRUE, sep = "," )
+mean(df.dbscan$x)
+mean(df.dbscan$y)
+sd(df.dbscan$x)
+sd(df.dbscan$y)
+
+```
+I think it is not necessary to standardize the dataset as the two variables have very similar range. their mean is 514937 and 494709 respectively and their standard deviation is 244465 and 235840 respectively.
+we can see that these values are similar and standardizing will not change much as they have similar ranges.
+### Part 2.2-B-i
+(b) [0.10 pts] (i) Plot the dataset.
+```{r}
+plot(df.dbscan)
+```
+
+### Part 2.2-B-ii
+(ii) [0.10 pts] Describe in 1-2 sentences what you observe (visually) in the plot: how many clusters do you see?
+Are they well-separated?
+
+In the plot I observe points grouped with increasing density as we approach the center of each group.I see 15 clusters. The space between groups is generally empty, but there are some groups that are near, and thus the points in their borders almost enter the other groups zone.The groups are generally well separated but some of them are not so well separated.
+
+### Part 2.2-C
+(c) Let’s see how many clusters K-Means finds.
+
+### Part 2.2-C-i
+(i) [0.10 pts] Using the “wss” method, draw the scree plot for the optimal number of clusters
+```{r}
+nb2 <- fviz_nbclust(df.dbscan, FUNcluster = kmeans, method = "wss", diss = NULL, k.max = 20, nboot = 100, verbose = interactive(), barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", print.summary = TRUE )
+nb2
+```
+
+### Part 2.2-C-ii
+(ii) [0.10 pts]Using the “silhouette” method, draw the scree plot for the optimal number of clusters.
+```{r}
+nb3 <- fviz_nbclust(df.dbscan, FUNcluster = kmeans, method = "silhouette", diss = NULL, k.max = 20, nboot = 100, verbose = interactive(), barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", print.summary = TRUE )
+nb3
+```
+
+### Part 2.2-C-iii
+(iii) [0.25 pts] What do you think is the appropriate number of clusters if we were to use K-Means clustering on
+this dataset?
+
+If we were to use K-means clustering in this dataset I think we should take 13 clusters, as with the average silhouette width decreases and at that point SSE doesn't decrease radically as we increase the number of clusters.
+
+### Part 2.2-D-i
+(d) [0.05 pts] (i) Using the answer to (c)(iii), perform K-Means clustering on the dataset and plot the results.
+
+```{r}
+k2 <- kmeans(df.dbscan, centers=13)
+fviz_cluster(k2,data = df.dbscan, repel = TRUE)
+```
+### Part 2.2-D-ii
+(ii) [0.50 pts] Comment on how K-Means has clustered the dataset. (1-2 sentences.)
+K-means has clustered the dataset clustering one or more than one group of points together, so that the area covered in each cluster is similar. this happens because there is a similar density of points in all the space.
+
+### Part 2.2-E
+(e) We will now perform dbscan on this dataset.
+### Part 2.2-E-i
+[0.05 pts]What is the value of MinPts that you think is reasonable for this dataset? Why?
+As we have seen in different aproximations with this data, the number of clusters is between 0 and 20, assume 10. that's why we can consider the minimum dataset to be around 1/20 of the whole dataset and (1/2)of the mean cluster size. This means Minpts=250. These numbers are aproximations.
+
+### Part 2.2-E-ii
+(ii) [2.00 pts] In order to find the value of ɛ (eps), we need to calculate the average distance of every point to its
+k nearest neighbors. Set the value of k to be the result you obtained in (e)(i). Then, using this value determine
+what the correct value for ɛ should be. (Hint: Look at the online manual page for the function kNNdistplot()).
+
+```{r}
+knn <- kNNdistplot(df.dbscan, 250, all = FALSE)
+```
+
+
+```{r}
+dbs <- dbscan(df.dbscan, 55000, MinPts = 250)
+print(paste("At minPts = ", dbs$minPts , ", eps = ", dbs$eps ,", there are ", range(dbs$cluster)[2], " clusters." , sep = "", collapse = NULL))
+```

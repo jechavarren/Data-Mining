@@ -1,0 +1,81 @@
+---
+title: "CS 422 HW1"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: "Javier Echavarren Suárez"
+---
+
+### Part i
+
+```{r}
+data.df<-read.csv(file = "us-covid.csv", skip =  7)
+
+```
+
+### Part ii
+
+```{r}
+data.df = subset(data.df, select = -c(confirmed_deaths) )
+
+```
+
+### Part iii - a
+
+```{r}
+library(dplyr)
+arrange(data.df, desc(total_cases))
+arrange(top_n(data.df,6,total_cases), desc(total_cases))
+
+```
+### Part iii - b
+```{r}
+library(dplyr)
+arrange(data.df, desc(total_cases))
+arrange(top_n(data.df,-6,total_cases), desc(total_cases))
+
+```
+
+### Part iv
+
+```{r}
+library(psych)
+pairs.panels(subset(data.df, select = -c(state, level) ))
+
+```
+
+#### Part iv a
+(a) Why should we exclude the first two columns from correlation analysis?
+
+Because they are nominal data, and we can't make correlation with this type of data
+
+#### Part iv b
+(b) Which pair of columns have the highest correlation?
+
+Total cases and total deaths, with a correlation of 0.98
+
+#### Part iv c
+(c) Which pair of columns has the lowest correlation?
+
+Cases in the last 7 days and case rate per 100k
+
+### Part v
+
+```{r}
+data.df<-mutate(data.df, confirmed_plus_probable = confirmed + probable)
+plot(data.df$confirmed_plus_probable,data2$total_deaths , xlab = "Confirmed + probable" , ylab = "Total deaths")
+
+```
+#### Part v b
+(b) As you see the plot, there appears to be an anomaly. Looking at the data, briefly describe the anomaly.
+
+The anomaly is that there are states in which confirmed + probable cases are 0, and that is because we lack the data of those states
+
+#### Part v c
+
+```{r}
+select(filter(data.df , confirmed_plus_probable == 0), state,total_deaths, confirmed , probable , total_cases)
+
+
+```

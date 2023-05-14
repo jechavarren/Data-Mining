@@ -1,0 +1,94 @@
+---
+  title: "CS 422 HW6"
+output: 
+  html_notebook:
+  toc: yes
+toc_float: yes
+author: "Javier Echavarren"
+---
+  
+rm(list=ls())
+
+# Set working directory as needed
+setwd("C:/Users/Javier/Desktop/Data mining assignments/HW6")
+
+points <- read.csv("perceptron.csv")
+
+# The Perceptron function
+#
+# PARAMETERS:
+# points: The dataset that is to be separated
+# lamda:  The learning rate
+# gamma:  The error threshold
+#
+# RETURNS
+# A list containing three named elements.  The elements
+# should be named: 
+# "weights" - Contains the final weight vector (learned weights)
+# "epochs"  - Number of epochs it took to converge
+# "error"   - A vector of error calculated at the end of each epoch
+
+perceptron <- function(points, lamda, gamma) {
+
+# --- Your code goes below ---
+
+# we subset the points matrix with the two labels, in order to plot them later
+  d= as.data.frame(points,col.names = c("label", "x0", "x1", "x2"))
+  data_red <- subset(d, label ==1, select = c(x0,x1,x2))
+  data_blue <- subset(d, label ==-1, select = c(x0,x1,x2))
+  
+  
+#We initialyze the weights values (w)n, the number of epochs and the epoch vector
+ w = runif(3,-1,1)
+  epochs <- 0
+  error <- rep(1,nrow(points))
+  error_v <- c()
+  
+#We run the loop for evaluating the function and update the weights
+  while(mean(abs(error))>gamma) {
+  
+  for (n in 1:nrow(points)){
+    predicted=my_sign(points[n,2:4],w)
+    error[n]=(points[n,1]-predicted)
+    w = w + (lamda * (points[n,1]-predicted))*points[n,2:4]
+  }
+  
+  
+  epochs = epochs + 1
+  error_v <- append(error_v,mean(abs(error)))
+    
+#printing the points and the line
+
+  plot(data_red$x1,data_red$x2, col= "red")
+  points(data_blue$x1,data_blue$x2, col= "blue")
+  lines(seq(from = 0, to = 1, by = 0.01),seq(from = 0, to = 1, by = 0.01)*as.numeric((-(w[2]/w[3])))-as.numeric(w[1]/w[2]),col = "black")
+  }
+return(list("weights" = c(as.numeric(w[1]),as.numeric(w[2]),as.numeric(w[3])),"epochs" = epochs,"error" =error_v))
+
+}
+
+# The sign function, this is the prediction function
+# PARAMETERS:
+# x : The X vector (input that needs to be predicted)
+# weights: The weight vector
+# RETURNS:
+# -1 or 1
+
+my_sign <- function(x, weights) {
+
+# --- Your code goes below ---
+  s=0
+  s=sign(sum(weights*x))
+  if(s==0) {
+    s=1
+  }
+  return(s)
+}
+
+# MAIN ENTRY POINT
+#Get he final values of the perceptron and plot all the intermediate graphs
+solution = perceptron(points = points, lamda = 0.005,gamma = 0.01)
+
+#Plot the graph of error versus epochs
+plot(1:solution$epochs,solution$error,type="l", col="green",xlab="Epochs", ylab="Average error", main="Perceptron training error")
+
